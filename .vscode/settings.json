@@ -1,4 +1,5 @@
 {
+  // Frontend formatting settings for peace of mind.
   "oxc.fmt.configPath": "frontend/.oxfmtrc.json",
   "[javascript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode",
@@ -6,6 +7,22 @@
   },
   "[typescript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true
+  },
+  "[html]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true
+  },
+  
+  // Fixes the uv venv interpreter not being detected by the Python extension.
+  "python.useEnvironmentsExtension": true,
+  // Backend formatting settings for peace of mind.
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true
   }
 }

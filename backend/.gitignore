@@ -1,2 +1,5 @@
 .venv
 .ruff_cache
+.chainlit
+.files
+__pycache__

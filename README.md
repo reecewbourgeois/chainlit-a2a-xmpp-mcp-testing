@@ -2,7 +2,9 @@
 
 ## Pre-requisites
 
-Note: most of the commands in this section should be run from the either the `/backend` or `/frontend` directories, depending on which part of the project a section is referring to.
+> Note 1: most of the commands in this section should be run from the either the `/backend` or `/frontend` directories, depending on which part of the project a section is referring to.
+
+> Note 2: I am primarily using VS Code and there are some configuration issues with monorepos and the various standard extensions with the tools used in this project (uv, oxc, etc.). I have included the general .vscode settings I have in place, but you may need to adjust them for your own setup.
 
 ### Backend (/backend)
 
@@ -41,14 +43,42 @@ A note on pnpm: you may run into issues with some post-install build scripts for
 pnpm approve-builds
 ```
 
-## Formatting & Linting
+## Running the project
 
 ### Backend (/backend)
 
-Ruff has been defined as a dev dependency. It can be used as both a linter and a formatter. To run it, use the following command:
+To run the backend, use the following command:
+
+```bash
+uv run app/main.py
+```
+
+This will start the FastAPI uvicorn server on port 5000. You can access the API at `http://localhost:5000`. There are swagger docs available at `http://localhost:5000/docs`.
+
+> Note: If you see `"0.0.0.0"` in the code and terminal output, that is normal. It just means "use the host machine's IP address" which for us means `localhost`, or `127.0.0.1` if you're fancy.
+
+### Frontend (/frontend)
+
+To run the frontend, use the following command:
+
+```bash
+pnpm dev
+```
+
+This will start the Vite development server on port 3000. You can access the frontend at `http://localhost:3000`.
+
+
+## Formatting & Linting
+
+> Note: If you are using VS Code and have the appropriate extensions installed, you should be able to format on save. The commands below are for manual use or if you want to run them in a CI/CD pipeline. Linting errors should show in your editor as you work.
+
+### Backend (/backend)
+
+Ruff has been defined as a dev dependency. It can be used as both a linter and a formatter. To run it, use the following commands:
 
 ```bash
 uv run ruff check .
+uv run ruff format .
 ```
 
 ### Frontend (/frontend)
