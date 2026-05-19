@@ -9,6 +9,7 @@
 ### Backend (/backend)
 
 - uv (https://docs.astral.sh/uv/)
+- Ollama and a model of your choice (https://ollama.com/)
 
 `uv` will handle the dependencies and virtual environment for the backend. To install the dependencies, run the following command:
 
@@ -17,6 +18,8 @@ uv sync
 ```
 
 Make sure to use the proper uv commands instead of the normal pip commands when managing dependencies (`uv add` instead of `pip install`). See their documentation for more details.
+
+If you chose a different model than is present in the code, make sure to update the `MODEL` variable in `main.py` to match the name of your model in Ollama.
 
 ### Frontend (/frontend)
 
