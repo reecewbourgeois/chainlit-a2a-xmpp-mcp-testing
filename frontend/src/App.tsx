@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Flexbox } from "./shared/Layout";
 
 import styles from "./App.module.scss";
@@ -38,9 +38,27 @@ export function App() {
 const ChatWindow = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const base64 = await fileToBase64(e.target.files[0]);
+      setSelectedImage(base64);
+    }
+  };
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() && !selectedImage) return;
 
     // 1. Add user message
     const userMsg: Message = {
@@ -51,6 +69,8 @@ const ChatWindow = () => {
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setSelectedImage(null); // Clear image after sending
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
     // 2. Add an empty placeholder for the assistant response
     const assistantMsgId = (Date.now() + 1).toString();
@@ -63,7 +83,7 @@ const ChatWindow = () => {
       const response = await fetch(`${API_URL}/chat/my-session-id`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message: input, image_url: selectedImage }),
       });
 
       if (!response.body) return;
@@ -121,6 +141,26 @@ const ChatWindow = () => {
         </div>
       ))}
 
+      {/* Image Preview Thumbnail */}
+      {selectedImage && (
+        <div className="preview">
+          <img src={selectedImage} alt="Preview" style={{ width: "50px" }} />
+          <button onClick={() => setSelectedImage(null)}>X</button>
+        </div>
+      )}
+
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        style={{ display: "none" }}
+      />
+      {/* Image Upload Button */}
+      <button onClick={() => fileInputRef.current?.click()}>Upload Image</button>
+
+      {/* Text Input */}
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}

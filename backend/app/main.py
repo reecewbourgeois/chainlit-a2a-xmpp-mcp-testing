@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -6,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from litellm import CustomStreamWrapper, acompletion
 from pydantic import BaseModel
 
-MODEL = "ollama/qwen3-vl:2b"  # TODO: Env
+MODEL = "ollama_chat/qwen3-vl:2b"  # TODO: Env
 
 app = FastAPI()
 
@@ -19,7 +20,7 @@ app.add_middleware(
 
 # TODO: Database or Redis
 # Global memory store (for demonstration)
-chat_sessions = {}
+chat_sessions: dict[str, list[dict]] = {}
 
 
 @app.get("/")
@@ -29,22 +30,25 @@ def read_main():
 
 class Chat(BaseModel):
     message: str
+    image_url: Optional[str] = None  # Base64 string
 
 
 @app.post("/chat/{session_id}")
 async def chat(session_id: str, body: Chat):
-    user_message = body.message
+    # Construct the multimodal message
+    user_content: list[dict] = [{"type": "text", "text": body.message}]
 
-    # 1. Initialize history for this session if it doesn't exist
+    if body.image_url:
+        user_content.append({"type": "image_url", "image_url": {"url": body.image_url}})
+
+    # Initialize history for this session if it doesn't exist
     if session_id not in chat_sessions:
-        chat_sessions[session_id] = [
-            {"role": "system", "content": "You are a helpful AI assistant."}
-        ]
+        chat_sessions[session_id] = []
 
-    # 2. Append user message
-    chat_sessions[session_id].append({"role": "user", "content": user_message})
+    # Append to history, but note the change to a LIST of dicts for 'content'
+    chat_sessions[session_id].append({"role": "user", "content": user_content})
 
-    # 3. Create the generator for streaming
+    # Create the generator for streaming
     async def generate():
         ai_reasoning_content = ""
         ai_response_content = ""
