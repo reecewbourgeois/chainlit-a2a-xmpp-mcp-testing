@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from litellm import CustomStreamWrapper, acompletion
 from pydantic import BaseModel
 
-MODEL = "ollama_chat/qwen3-vl:2b"  # TODO: Env
+MODEL = "ollama_chat/gemma4:e2b"  # TODO: Env
 
 app = FastAPI()
 
@@ -28,9 +28,40 @@ def read_main():
     return {"message": "Hello World from main app"}
 
 
+class ImageURLInput(BaseModel):
+    url: str
+
+
+class ImageInput(BaseModel):
+    type: Literal["image_url"] = "image_url"
+    image_url: ImageURLInput
+
+
+class AudioURLInput(BaseModel):
+    data: str  # Base64 string
+    format: str  # e.g., "wav", "mp3"
+
+
+class AudioInput(BaseModel):
+    type: Literal["input_audio"] = "input_audio"
+    input_audio: AudioURLInput
+
+
 class Chat(BaseModel):
     message: str
-    image_url: Optional[str] = None  # Base64 string
+    # Format: https://docs.litellm.ai/docs/completion/vision#quick-start
+    vision_input: Optional[ImageInput] = None
+    # Format: https://docs.litellm.ai/docs/completion/audio#audio-input-to-a-model
+    audio_input: Optional[AudioInput] = None
+
+
+@app.get("/supported_inputs")
+async def supported_inputs():
+    # Was initially going to make this dynamic using litellm's functions, but it they are incorrect
+    return {
+        "audio_input": False,
+        "vision_input": True,
+    }
 
 
 @app.post("/chat/{session_id}")
@@ -38,8 +69,15 @@ async def chat(session_id: str, body: Chat):
     # Construct the multimodal message
     user_content: list[dict] = [{"type": "text", "text": body.message}]
 
-    if body.image_url:
-        user_content.append({"type": "image_url", "image_url": {"url": body.image_url}})
+    # Handle image if provided.
+    if body.vision_input:
+        print(body.vision_input.model_dump(mode="json"))
+        user_content.append(body.vision_input.model_dump(mode="json"))
+
+    # Handle audio if provided. Note that most models don't support audio input.
+    if body.audio_input and False:  # Audio input not supported
+        print(body.audio_input.model_dump(mode="json"))
+        user_content.append(body.audio_input.model_dump(mode="json"))
 
     # Initialize history for this session if it doesn't exist
     if session_id not in chat_sessions:
