@@ -10,6 +10,8 @@ dependencies = [
     "botocore>=1.43.11", # Fixes an error about a missing module on startup
     "fastapi[standard]>=0.136.1",
     "litellm>=1.85.0",
+    "psycopg[binary]>=3.3.4",
+    "txtai[ann,database,graph]>=9.9.0",
 ]
 
 [dependency-groups]

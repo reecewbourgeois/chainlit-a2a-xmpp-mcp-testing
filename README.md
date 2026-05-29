@@ -10,6 +10,7 @@
 
 - uv (https://docs.astral.sh/uv/)
 - Ollama and a model of your choice (https://ollama.com/)
+- PostgreSQL (https://www.postgresql.org/) with the `pgvector` extension (https://github.com/pgvector/pgvector#pgvector)
 
 `uv` will handle the dependencies and virtual environment for the backend. To install the dependencies, run the following command:
 

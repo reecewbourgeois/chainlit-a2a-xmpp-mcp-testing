@@ -1,3 +1,4 @@
+import os
 import uuid
 from ag_ui.core import (
     RunAgentInput,
@@ -13,16 +14,64 @@ from ag_ui.core import (
 )
 from ag_ui.encoder import EventEncoder
 from fastapi import FastAPI, Request
+from fastapi.concurrency import asynccontextmanager
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from litellm import CustomStreamWrapper, acompletion
+from sqlalchemy import text
 
-from app.helpers import convert_ag_ui_messages_to_openai_format
+from app.util.api_utils import convert_ag_ui_messages_to_openai_format
+from app.util.db_utils import DB_ENGINE, EMBEDDINGS, EMBEDDINGS_CONFIG_NAME
 
 
 MODEL = "ollama_chat/gemma4:e2b"  # TODO: Env
 
-app = FastAPI()
+# Sample data for RAG
+SAMPLE_DATA = [
+    "Python is a high-level, interpreted programming language.",
+    "FastAPI is a modern, fast (high-performance) web framework for building APIs with Python.",
+    "LiteLLM is a lightweight library that allows you to call various LLM APIs using the OpenAI format.",
+    "txtai is an enterprise-grade library for semantic search, RAG, and more.",
+    "The AG-UI protocol is used for streaming structured events to UIs.",
+]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    need_to_index = False
+    try:
+        with DB_ENGINE.connect() as conn:
+            # Query default txtai document tracking table
+            result = conn.execute(text("SELECT COUNT(*) FROM sections")).scalar()
+
+            # If no results, or the config file doesn't exist, we need to index the data.
+            if (
+                result is None
+                or result == 0
+                or not os.path.exists(EMBEDDINGS_CONFIG_NAME)
+            ):
+                need_to_index = True
+    except Exception:
+        # If the table doesn't exist, we also need to index
+        need_to_index = True
+
+    if need_to_index:
+        print("Seeding initial data into txtai...")
+        EMBEDDINGS.index(SAMPLE_DATA)
+        EMBEDDINGS.save(EMBEDDINGS_CONFIG_NAME)  # Save to database
+        EMBEDDINGS.close()  # Close the connection after seeding. We don't need to keep the data in memory
+
+    print("Loading index...")
+    EMBEDDINGS.load(
+        EMBEDDINGS_CONFIG_NAME
+    )  # Should only initialize the database connection and not load any data into memory
+
+    yield
+
+    # Any extra shutdown logic here
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,8 +110,36 @@ async def chat(run_input: RunAgentInput, request: Request):
             )
         )
 
+        # RAG Step: Extract the last user message for context retrieval
+        user_query = ""
+        for msg in reversed(run_input.messages):
+            if msg.role == "user":
+                # Assuming msg.content is the text; adjust based on your actual object structure
+                user_query = msg.content
+                break
+
+        context_text = ""
+        if user_query and EMBEDDINGS:
+            # Search for top 3 relevant sentences
+            # Output shape seems dependent on options used in the Embeddings contructor. With content=True and objects=True, we get a list of dicts with 'id', 'text', and 'score'.
+            results: list[dict] = EMBEDDINGS.search(user_query, limit=3)  # type: ignore | The exported types from this function are horrendous and incorrect
+            context_text = "\n".join([r["text"] for r in results])
+
         # Convert AG-UI messages to OpenAI messages format
         openai_messages = convert_ag_ui_messages_to_openai_format(run_input.messages)
+
+        if context_text:
+            # Inject context as a system message at the beginning
+            rag_prompt = (
+                "You are a helpful assistant. Use the following retrieved context "
+                "to answer the user's question. If the context doesn't contain "
+                "the answer, use your general knowledge but mention you are "
+                "relying on it.\n\n"
+                f"CONTEXT:\n{context_text}"
+            )
+            openai_messages.insert(
+                len(openai_messages) - 1, {"role": "system", "content": rag_prompt}
+            )
 
         # stream=True will always return this CustomStreamWrapper
         stream: CustomStreamWrapper = await acompletion(
