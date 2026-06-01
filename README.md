@@ -54,7 +54,7 @@ pnpm approve-builds
 To run the backend, use the following command:
 
 ```bash
-uv run main.py
+uv run main
 ```
 
 This will start the FastAPI uvicorn server on port 5000. You can access the API at `http://localhost:5000`. There are swagger docs available at `http://localhost:5000/docs`.
