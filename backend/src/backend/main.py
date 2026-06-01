@@ -20,8 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from litellm import CustomStreamWrapper, acompletion
 from sqlalchemy import text
 
-from app.util.api_utils import convert_ag_ui_messages_to_openai_format
-from app.util.db_utils import DB_ENGINE, EMBEDDINGS, EMBEDDINGS_CONFIG_NAME
+from .util.api_utils import convert_ag_ui_messages_to_openai_format
+from .util.db_utils import DB_ENGINE, EMBEDDINGS, EMBEDDINGS_CONFIG_NAME
 
 
 MODEL = "ollama_chat/gemma4:e2b"  # TODO: Env
@@ -216,8 +216,7 @@ async def chat(run_input: RunAgentInput, request: Request):
     return StreamingResponse(event_generator(), media_type=encoder.get_content_type())
 
 
-# Note: This should be for development purposes only. In production, this will use Gunicorn with Uvicorn workers.
-if __name__ == "__main__":
+def main():
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=5000, reload=True)

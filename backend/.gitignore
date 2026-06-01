@@ -4,3 +4,4 @@
 .files
 __pycache__
 generated_embeddings_config
+.pytest_cache
