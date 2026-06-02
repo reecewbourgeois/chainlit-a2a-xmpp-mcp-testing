@@ -136,6 +136,27 @@ const ChatWindow = ({ supportedInput }: { supportedInput: SupportedInput }) => {
                     </details>
                   );
                 }
+
+                console.log("Rendering content part:", part);
+
+                if (part.type === "tool-call") {
+                  return (
+                    <details key={idx}>
+                      <summary>🛠️ Tool Call: {part.name}</summary>
+                      <pre className={styles.toolCallMessage}>{part.arguments}</pre>
+                    </details>
+                  );
+                }
+
+                if (part.type === "tool-result") {
+                  return (
+                    <details key={idx}>
+                      <summary>🔧 Tool Result</summary>
+                      <pre className={styles.toolResultMessage}>{part.content}</pre>
+                    </details>
+                  );
+                }
+
                 if (part.type === "text") {
                   return (
                     <div key={idx} className={styles.textMessage}>
@@ -143,6 +164,7 @@ const ChatWindow = ({ supportedInput }: { supportedInput: SupportedInput }) => {
                     </div>
                   );
                 }
+
                 if (part.type === "image") {
                   return (
                     <div key={idx} className={styles.imageMessage}>
@@ -154,6 +176,9 @@ const ChatWindow = ({ supportedInput }: { supportedInput: SupportedInput }) => {
                     </div>
                   );
                 }
+
+                console.warn("Unknown content part type:", part);
+
                 return null;
               })}
             </div>
