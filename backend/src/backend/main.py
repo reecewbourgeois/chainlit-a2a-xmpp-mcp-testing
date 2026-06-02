@@ -114,7 +114,6 @@ async def chat(run_input: RunAgentInput, request: Request):
         user_query = ""
         for msg in reversed(run_input.messages):
             if msg.role == "user":
-                # Assuming msg.content is the text; adjust based on your actual object structure
                 user_query = msg.content
                 break
 
